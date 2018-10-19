@@ -18,13 +18,11 @@ class MotionDetectorContour:
 
     broker_address = '10.48.26.128'
     last_frame = None
-    user_name = ''
-    user_password = ''
 
-    def __init__(self, user_name, user_password):
+    def __init__(self, user_name, user_password, debug=False):
+        self.debug = debug
         self.user_name = user_name
         self.user_password = user_password
-        print('Started new MotionDetectorContour')
 
     def run(self):
         client = mqtt.Client()
@@ -40,7 +38,8 @@ class MotionDetectorContour:
         cv2.destroyAllWindows()
 
     def on_connect(self, client, userdata, flags, rc):
-        print("Connected with result code " + str(rc))
+        if(self.debug):
+            print("Connected with result code " + str(rc))
         client.subscribe("cam/stream")
 
     def on_message(self, client, userdata, msg):
@@ -96,13 +95,15 @@ class MotionDetectorContour:
         cv2.moveWindow("Motion Detection", 0, 0)
         cv2.imshow("Motion Detection", frame)
 
-        cv2.namedWindow("Thresh")
-        cv2.moveWindow("Thresh", 500, 500)
-        cv2.imshow("Thresh", thresh)
+        if(self.debug):
+            cv2.namedWindow("Thresh")
+            cv2.moveWindow("Thresh", 500, 500)
+            cv2.imshow("Thresh", thresh)
 
-        cv2.namedWindow("Frame Delta")
-        cv2.moveWindow("Frame Delta", 0, 500)
-        cv2.imshow("Frame Delta", frameDelta)
+        if(self.debug):
+            cv2.namedWindow("Frame Delta")
+            cv2.moveWindow("Frame Delta", 0, 500)
+            cv2.imshow("Frame Delta", frameDelta)
 
         self.last_frame = gray
 
@@ -110,5 +111,5 @@ class MotionDetectorContour:
         cv2.waitKey(1)
 
 
-mdc = MotionDetectorContour('user', 'password')
+mdc = MotionDetectorContour('user', 'password', debug=False)
 mdc.run()
