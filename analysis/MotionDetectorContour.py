@@ -18,13 +18,17 @@ class MotionDetectorContour:
 
     broker_address = '10.48.26.128'
     last_frame = None
+    user_name = ''
+    user_password = ''
 
-    def __init__(self):
+    def __init__(self, user_name, user_password):
+        self.user_name = user_name
+        self.user_password = user_password
         print('Started new MotionDetectorContour')
 
     def run(self):
         client = mqtt.Client()
-        client.username_pw_set('user', 'password')
+        client.username_pw_set(self.user_name, self.user_password)
         client.on_connect = self.on_connect
         client.on_message = self.on_message
 
@@ -106,5 +110,5 @@ class MotionDetectorContour:
         cv2.waitKey(1)
 
 
-mdc = MotionDetectorContour()
+mdc = MotionDetectorContour('user', 'password')
 mdc.run()
