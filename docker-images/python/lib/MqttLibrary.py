@@ -17,6 +17,7 @@ def createClient(server, port):
     client = mqtt.Client()
     client.on_connect = on_connect
     client.on_message = on_message
+    client.username_pw_set("admin", "password")
     client.connect(server, port, 60)
 
     # Blocking call that processes network traffic, dispatches callbacks and
