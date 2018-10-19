@@ -1,5 +1,5 @@
 var mqtt = require('mqtt')
-var client  = mqtt.connect('mqtt://10.48.155.253')
+var client  = mqtt.connect('mqtt://localhost')
 
 client.on('connect', function () {
   subscribe();
@@ -11,7 +11,7 @@ client.on('message', function (topic, message) {
 });
 
 function subscribe() {
-  client.subscribe('machine/data/state', function (err) {
+  client.subscribe('cam/stream', function (err) {
     if (err) {
       console.error(err);
     }
