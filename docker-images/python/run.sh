@@ -1,1 +1,1 @@
-docker run -it --rm --name mqtt-publish-test python-test
+docker run -itd --rm --name mqtt-publish-test python-test

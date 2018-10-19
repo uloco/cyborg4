@@ -6,21 +6,18 @@ import datetime
 import imutils
 import time
 import cv2
-
 import paho.mqtt.client as mqtt
-
-import cv2
 import base64
 import numpy as np
 
 
 class MotionDetectorContour:
-
-    broker_address = '10.48.26.128'
+    
     last_frame = None
 
-    def __init__(self, user_name, user_password, debug=False):
+    def __init__(self, user_name, user_password, broker_address, debug=False):
         self.debug = debug
+        self.broker_address = broker_address
         self.user_name = user_name
         self.user_password = user_password
 
@@ -35,7 +32,7 @@ class MotionDetectorContour:
         client.loop_forever()
 
         # cleanup open windows
-        cv2.destroyAllWindows()
+        #cv2.destroyAllWindows()
 
     def on_connect(self, client, userdata, flags, rc):
         if(self.debug):
@@ -91,19 +88,18 @@ class MotionDetectorContour:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
         # show the frame and record if the user presses a key
-        cv2.namedWindow("Motion Detection")
-        cv2.moveWindow("Motion Detection", 0, 0)
-        cv2.imshow("Motion Detection", frame)
-
         if(self.debug):
+            """ cv2.namedWindow("Motion Detection")
+            cv2.moveWindow("Motion Detection", 0, 0)
+            cv2.imshow("Motion Detection", frame)
+
             cv2.namedWindow("Thresh")
             cv2.moveWindow("Thresh", 500, 500)
             cv2.imshow("Thresh", thresh)
 
-        if(self.debug):
             cv2.namedWindow("Frame Delta")
             cv2.moveWindow("Frame Delta", 0, 500)
-            cv2.imshow("Frame Delta", frameDelta)
+            cv2.imshow("Frame Delta", frameDelta) """
 
         self.last_frame = gray
 
@@ -111,5 +107,5 @@ class MotionDetectorContour:
         cv2.waitKey(1)
 
 
-mdc = MotionDetectorContour('user', 'password', debug=False)
+mdc = MotionDetectorContour('user', 'password', '10.48.26.128', debug=False)
 mdc.run()
