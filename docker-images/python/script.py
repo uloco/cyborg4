@@ -1,12 +1,15 @@
-from lib import lib
+from lib import MqttLibrary
 import time
 
-print("Hello World")
-lib.helloLib()
+mqttClient = MqttLibrary.createClient("172.17.0.2", 1883)
 
-counter = 0
+state = 1
 
-while(counter < 5):
-    print("I run")
-    time.sleep(0.1)
-    counter += 1
+while 1:
+    print("Publish state ", state)
+    MqttLibrary.publishState(mqttClient, state)
+    if state < 5:
+        state += 1
+    else:
+        state = 1
+    time.sleep(3)
