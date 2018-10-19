@@ -12,8 +12,9 @@ import numpy as np
 
 
 class MotionDetectorContour:
-    
+
     last_frame = None
+    laste_state = None
 
     def __init__(self, user_name, user_password, broker_address, debug=False):
         self.debug = debug
@@ -21,36 +22,35 @@ class MotionDetectorContour:
         self.user_name = user_name
         self.user_password = user_password
 
+        self.client = mqtt.Client()
+        self.client.username_pw_set(self.user_name, self.user_password)
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+
+        self.client.connect(self.broker_address, 1883, 60)
+
     def run(self):
-        client = mqtt.Client()
-        client.username_pw_set(self.user_name, self.user_password)
-        client.on_connect = self.on_connect
-        client.on_message = self.on_message
-
-        client.connect(self.broker_address, 1883, 60)
-
-        client.loop_forever()
-
+        self.client.loop_forever()
         # cleanup open windows
-        #cv2.destroyAllWindows()
+        cv2.destroyAllWindows()
 
     def on_connect(self, client, userdata, flags, rc):
         if(self.debug):
             print("Connected with result code " + str(rc))
-        client.subscribe("cam/stream")
+        self.client.subscribe("cam/stream")
 
     def on_message(self, client, userdata, msg):
         jpg_original = base64.b64decode(msg.payload)
         jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
         frame = cv2.imdecode(jpg_as_np, flags=1)
-        text = "Unproductive"
+        state = "Unproductive"
 
         # if the frame could not be grabbed, escape
         if frame is None:
             return
 
         # resize the frame, convert it to grayscale, and blur it
-        frame = imutils.resize(frame, width=500)
+        #frame = imutils.resize(frame, width=500)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
@@ -78,18 +78,22 @@ class MotionDetectorContour:
                 continue
 
             # compute the bounding box for the contour, draw it on the frame,
-            # and update the text
+            # and update the state
             (x, y, w, h) = cv2.boundingRect(c)
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            text = "Productive"
+            state = "Productive"
+
+        # publish state to mqtt broker
+        if(self.laste_state != None and self.laste_state != state):
+            self.client.publish("machine/state", state)
 
         # draw the state on the frame
-        cv2.putText(frame, "Machine state: {}".format(text), (10, 20),
+        cv2.putText(frame, "Machine state: {}".format(state), (10, 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
         # show the frame and record if the user presses a key
         if(self.debug):
-            """ cv2.namedWindow("Motion Detection")
+            cv2.namedWindow("Motion Detection")
             cv2.moveWindow("Motion Detection", 0, 0)
             cv2.imshow("Motion Detection", frame)
 
@@ -99,13 +103,16 @@ class MotionDetectorContour:
 
             cv2.namedWindow("Frame Delta")
             cv2.moveWindow("Frame Delta", 0, 500)
-            cv2.imshow("Frame Delta", frameDelta) """
+            cv2.imshow("Frame Delta", frameDelta)
 
         self.last_frame = gray
+        self.laste_state = state
 
         # needed waitKey to show img - param is time in ms
         cv2.waitKey(1)
 
 
-mdc = MotionDetectorContour('user', 'password', '10.48.26.128', debug=False)
+#mdc = MotionDetectorContour('user', 'password', '10.48.26.128', debug=True)
+mdc = MotionDetectorContour('user', 'password', '10.48.153.110', debug=True)
+
 mdc.run()
