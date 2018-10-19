@@ -74,7 +74,7 @@ class MotionDetectorContour:
         # loop over the contours
         for c in cnts:
             # if the contour is too small, ignore it
-            if cv2.contourArea(c) < 500:  # TODO magic numver min area
+            if cv2.contourArea(c) < 500:  # TODO magic number min area
                 continue
 
             # compute the bounding box for the contour, draw it on the frame,
@@ -85,7 +85,7 @@ class MotionDetectorContour:
 
         # publish state to mqtt broker
         if(self.laste_state != None and self.laste_state != state):
-            self.client.publish("machine/state", state)
+            self.client.publish("state/at_machine", state)
 
         # draw the state on the frame
         cv2.putText(frame, "Machine state: {}".format(state), (10, 20),
