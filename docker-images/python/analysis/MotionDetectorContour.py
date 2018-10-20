@@ -264,16 +264,17 @@ class MotionDetectorContour:
                     cv2.rectangle(frame, (int(defined_state['pnt_lft_up'][0]), int(defined_state['pnt_lft_up'][1])), (
                         int(defined_state['pnt_rght_dwn'][0]), int(defined_state['pnt_rght_dwn'][1])), (255, 0, 0), 2)
 
+            frame = imutils.resize(frame, width=1000)
             cv2.namedWindow("Motion Detection")
             cv2.moveWindow("Motion Detection", 0, 0)
             cv2.imshow("Motion Detection", frame)
 
             cv2.namedWindow("Thresh")
-            cv2.moveWindow("Thresh", 500, 500)
+            cv2.moveWindow("Thresh", 1000, 0)
             cv2.imshow("Thresh", thresh)
 
             cv2.namedWindow("Frame Delta")
-            cv2.moveWindow("Frame Delta", 0, 500)
+            cv2.moveWindow("Frame Delta", 1000, 500)
             cv2.imshow("Frame Delta", frameDelta)
 
             # needed waitKey to show img - param is time in ms
