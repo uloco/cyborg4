@@ -19,8 +19,11 @@ const startMqtt = (tpc, cb) => {
     });
   });
 
-  client.on("message", (_topic, message) => {
-    cb(`data:image/jpg;base64,${message.toString()}`);
+  client.on("message", (topic, message) => {
+    if (topic === "state/at_machine") {
+      console.log(message.toString());
+    }
+    cb(message.toString());
   });
 };
 
