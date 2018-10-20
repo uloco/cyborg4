@@ -22,9 +22,8 @@
   color: #61dafb;
 }
 
-#selection-area {
-  width: 500px;
-  height: 320px;
+canvas {
+  border: 1px solid grey;
 }
 
 @keyframes App-logo-spin {
