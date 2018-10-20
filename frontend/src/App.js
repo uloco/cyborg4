@@ -36,7 +36,7 @@ class App extends Component {
     return (
       <div className="App">
         <SelectionArea />
-        <img src={this.state.url} />
+        <img src={this.state.url} alt="foo" />
         <p>Current State</p>
         <p>{this.state.machineState}</p>
         <p>{this.state.timestamp}</p>

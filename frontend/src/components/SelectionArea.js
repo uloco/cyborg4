@@ -1,5 +1,4 @@
 import React, { Component } from "react";
-import { startMqtt } from "../services/mqtt";
 
 import { connect } from "mqtt";
 
