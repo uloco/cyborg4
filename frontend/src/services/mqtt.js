@@ -31,7 +31,7 @@ const startMqtt = (tpc, cb) => {
       }
     ]);
 
-    client.publish("state/definition", payload);
+    // client.publish("state/definition", payload);
     cb(message.toString());
   });
 };

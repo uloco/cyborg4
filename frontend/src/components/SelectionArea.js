@@ -29,6 +29,7 @@ export default class SelectionArea extends Component {
 
   mouseDown(e) {
     e.persist();
+    this.point = { name: "State " + this.points.length };
     let { left, top } = this.refs.canvas.getBoundingClientRect();
     this.point.xStart = e.clientX - left;
     this.point.yStart = e.clientY - top;
@@ -42,13 +43,14 @@ export default class SelectionArea extends Component {
     this.point.yStop = e.clientY - top;
     this.drag = false;
 
+    console.log(this.point);
+    console.log(this.points);
+
     if (this.points.length < 3) {
-      this.points = [...this.points, this.point];
+      this.points.push(this.point);
     } else {
-      let points = [...this.points];
-      points.shift();
-      points.push(this.point);
-      this.points = points;
+      this.points.shift();
+      this.points.push(this.point);
     }
 
     if (this.rectangles.length < 2) {
@@ -70,16 +72,22 @@ export default class SelectionArea extends Component {
     console.log("points", this.points);
     console.log("rectangles", this.rectangles);
 
-    let payload = JSON.stringify([
-      {
-        name: "State " + Math.random() * 10,
-        pnt_lft_up: [this.point.xStart, this.point.yStart],
-        pnt_rght_dwn: [this.point.xStop, this.point.yStop]
-      }
-    ]);
-
-    console.log(payload);
-    this.client.publish("state/definition", payload);
+    // let payload = JSON.stringify([
+    //   {
+    //     name: "State " + Math.random() * 10,
+    //     pnt_lft_up: [this.point.xStart, this.point.yStart],
+    //     pnt_rght_dwn: [this.point.xStop, this.point.yStop]
+    //   }
+    // ]);
+    let payload = this.points.map(point => {
+      return {
+        name: point.name,
+        pnt_lft_up: [point.xStart, point.yStart],
+        pnt_rght_dwn: [point.xStop, point.yStop]
+      };
+    });
+    console.log("payload", payload);
+    this.client.publish("state/definition", JSON.stringify(payload));
   }
 
   mouseMove(e) {
