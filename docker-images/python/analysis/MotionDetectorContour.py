@@ -12,10 +12,59 @@ import numpy as np
 import json
 
 
+class Point:
+
+    def __init__(self, xcoord=0, ycoord=0):
+        self.x = xcoord
+        self.y = ycoord
+
+
+class Rectangle:
+
+    def __init__(self, top_left, bottom_right):
+        self.top_left = top_left
+        self.bottom_right = bottom_right
+
+    def intersects(self, other):
+        return not (self.top_left.x > other.bottom_right.x or self.top_left.x < other.top_left.x or self.bottom_right.y > other.bottom_right.y or self.top_left.y < other.top_left.y)
+
+
 class MotionDetectorContour:
 
     last_frame = None
     laste_state = None
+    state_definition = None
+
+    json_state_definition_dummy = """ 
+        {
+            "state_definition": {
+                "list": [
+                    {
+                        "name": "Productive_1",
+                        "pnt_lft_up": [
+                            0.0,
+                            0.0
+                        ],
+                        "pnt_rght_dwn": [
+                            0.2,
+                            0.2
+                        ]
+                    },
+                    {
+                        "name": "Productive_2",
+                        "pnt_lft_up": [
+                            0.8,
+                            0.8
+                        ],
+                        "pnt_rght_dwn": [
+                            1.0,
+                            1.0
+                        ]
+                    }
+                ]
+            }
+        }
+    """
 
     def __init__(self, user_name, user_password, broker_address, debug=False):
         self.debug = debug
@@ -49,9 +98,13 @@ class MotionDetectorContour:
         }
         return json.dumps(data)
 
-    def on_message(self, client, userdata, msg):
-        jpg_original = base64.b64decode(msg.payload)
-        jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
+    def rectangleInArea(self, x1, y1, x2, y2, pnt_lft_up, pnt_rght_dwn):
+        rectangle1 = Rectangle(Point(x1, y1), Point(x2, y2))
+        rectangle2 = Rectangle(Point(pnt_lft_up[0], pnt_lft_up[1]), Point(
+            pnt_rght_dwn[0], pnt_rght_dwn[1]))
+        return rectangle1.intersects(rectangle2)
+
+    def analyzeImage(self, jpg_as_np):
         frame = cv2.imdecode(jpg_as_np, flags=1)
         state = "Unproductive"
 
@@ -90,8 +143,17 @@ class MotionDetectorContour:
             # compute the bounding box for the contour, draw it on the frame,
             # and update the state
             (x, y, w, h) = cv2.boundingRect(c)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            state = "Productive"
+            
+            # check if rectangel is in defined area
+            if self.state_definition is not None:
+                for defined_state in self.state_definition['state_definition']['list']:
+                    state = "Productive"
+                    cv2.rectangle(frame, (x, y), (x + w, y + h),
+                                  (0, 255, 0), 2)
+                    if self.rectangleInArea(x, y, x+w, y+h, defined_state['pnt_lft_up'], defined_state['pnt_rght_dwn']):
+                        state = defined_state['name']
+                        break
+            
 
         # publish state to mqtt broker
         if(self.laste_state != None and self.laste_state != state):
@@ -121,6 +183,18 @@ class MotionDetectorContour:
 
         # needed waitKey to show img - param is time in ms
         cv2.waitKey(1)
+
+    def on_message(self, client, userdata, msg):
+        # TODO remove - just for testing
+        state_definition_json = self.json_state_definition_dummy
+        self.state_definition = json.loads(state_definition_json)
+
+        if(msg.topic == 'state/definition'):
+            self.state_definition = json.loads(msg.payload)
+        elif(msg.topic == 'cam/stream'):
+            jpg_original = base64.b64decode(msg.payload)
+            jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
+            self.analyzeImage(jpg_as_np)
 
 
 #mdc = MotionDetectorContour('user', 'password', '10.48.26.128', debug=True)
