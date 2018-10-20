@@ -37,6 +37,7 @@ class MotionDetectorContour:
     mqtt_topic_stream = 'cam/stream'
     mqtt_topic_state = 'state/at_machine'
     mqtt_topic_area = 'state/definition'
+
     last_frame = None
     laste_state = None
     state_definition = None
@@ -44,32 +45,31 @@ class MotionDetectorContour:
     # for debugging
     json_state_definition_dummy = """
         {
-            "state_definition": {
-                "list": [
-                    {
-                        "name": "Productive_1",
-                        "pnt_lft_up": [
-                            0,
-                            0
-                        ],
-                        "pnt_rght_dwn": [
-                            100,
-                            100
-                        ]
-                    },
-                    {
-                        "name": "Productive_2",
-                        "pnt_lft_up": [
-                            250,
-                            250
-                        ],
-                        "pnt_rght_dwn": [
-                            350,
-                            350
-                        ]
-                    }
-                ]
-            }
+            "points": [
+                {
+                    "name": "Productive_1",
+                    "pnt_lft_up": [
+                        0,
+                        0
+                    ],
+                    "pnt_rght_dwn": [
+                        100,
+                        100
+                    ]
+                },
+                {
+                    "name": "Productive_2",
+                    "pnt_lft_up": [
+                        250,
+                        250
+                    ],
+                    "pnt_rght_dwn": [
+                        350,
+                        350
+                    ]
+                }
+            ]
+                
         }
     """
 
@@ -86,6 +86,10 @@ class MotionDetectorContour:
 
         self.client.connect(self.broker_address, 1883, 60)
 
+        #if self.debug:
+        #    self.state_definition = json.loads(
+        #        self.json_state_definition_dummy)
+
     def run(self):
         self.client.loop_forever()
         # cleanup open windows
@@ -95,6 +99,7 @@ class MotionDetectorContour:
         if self.debug:
             print("Connected with result code " + str(rc))
         self.client.subscribe(self.mqtt_topic_stream)
+        self.client.subscribe(self.mqtt_topic_area)
 
     def parseToJson(self, state):
         data = {
@@ -111,6 +116,85 @@ class MotionDetectorContour:
             pnt_rght_dwn[0], pnt_rght_dwn[1]))
         return rectangle1.intersects(rectangle2)
 
+    def findHuman(self, jpg_as_np):
+        frame = cv2.imdecode(jpg_as_np, flags=1)
+        state = self.laste_state
+
+        # if the frame could not be grabbed, escape
+        if frame is None:
+            return
+
+        blur = cv2.GaussianBlur(frame, (15, 15), 0)
+
+        hsv = cv2.cvtColor(blur, cv2.COLOR_BGR2HSV)
+
+        # TODO find right color range
+        lower = np.array([0, 75, 100], dtype="uint8")
+        upper = np.array([5, 120, 200], dtype="uint8")
+
+        mask = cv2.inRange(hsv, lower, upper)
+        res = cv2.bitwise_and(blur, blur, mask=mask)
+        res = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
+
+        # if the last frame is None, initialize it
+        if self.last_frame is None:
+            self.last_frame = res
+            return False
+
+        frameDelta = cv2.absdiff(self.last_frame, res)
+        thresh = cv2.threshold(frameDelta, 20, 255, cv2.THRESH_BINARY)[1]
+
+        # dilate the thresholded image to fill in holes, then find contours
+        # on thresholded image
+        thresh = cv2.dilate(thresh, None, iterations=2)
+
+        cnts = cv2.findContours(
+            thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = cnts[0] if imutils.is_cv2() else cnts[1]
+
+        humand_detected = False
+        # loop over the contours
+        for c in cnts:
+            # if the contour is too small, ignore it
+            if cv2.contourArea(c) < 100:  # 5000:  # TODO magic number min area
+                continue
+
+            # compute the bounding box for the contour, draw it on the frame,
+            # and update the state
+            (x, y, w, h) = cv2.boundingRect(c)
+            state = 'HUMAN_DETECTED'
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+            humand_detected = True
+            break
+
+        if humand_detected:
+            if self.laste_state != None and self.laste_state != state:
+                self.client.publish(self.mqtt_topic_state,
+                                    self.parseToJson(state))
+            state = 'ts'
+            self.laste_state = state
+
+            # show the frame and record if the user presses a key
+            if self.debug:
+                cv2.namedWindow("Motion Detection")
+                cv2.moveWindow("Motion Detection", 0, 0)
+                cv2.imshow("Motion Detection", frame)
+
+                cv2.namedWindow("Human Detection")
+                cv2.moveWindow("Human Detection", 500, 500)
+                cv2.imshow("Human Detection", res)
+
+                cv2.namedWindow("Blur Detection")
+                cv2.moveWindow("Blur Detection", 1000, 500)
+                cv2.imshow("Blur Detection", blur)
+
+                # needed waitKey to show img - param is time in ms
+                cv2.waitKey(1)
+
+        self.last_frame = res
+
+        return humand_detected
+
     def analyzeImage(self, jpg_as_np):
         frame = cv2.imdecode(jpg_as_np, flags=1)
         state = "Unproductive"
@@ -119,12 +203,10 @@ class MotionDetectorContour:
         if frame is None:
             return
 
-        # resize the frame, convert it to grayscale, and blur it
-        # frame = imutils.resize(frame, width=500)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
-        # if the first frame is None, initialize it
+        # if the last frame is None, initialize it
         if self.last_frame is None:
             self.last_frame = gray
             return
@@ -152,8 +234,9 @@ class MotionDetectorContour:
             (x, y, w, h) = cv2.boundingRect(c)
 
             # check if rectangel is in defined area
+            # print(self.state_definition)
             if self.state_definition is not None:
-                for defined_state in self.state_definition['state_definition']['list']:
+                for defined_state in self.state_definition:
                     state = "Productive"
                     if self.rectangleInArea(x, y, x+w, y+h, defined_state['pnt_lft_up'], defined_state['pnt_rght_dwn']):
                         state = defined_state['name']
@@ -176,9 +259,10 @@ class MotionDetectorContour:
         # show the frame and record if the user presses a key
         if self.debug:
             # check if there are defined areas
-            for defined_state in self.state_definition['state_definition']['list']:
-                cv2.rectangle(frame, (defined_state['pnt_lft_up'][0], defined_state['pnt_lft_up'][1]), (
-                    defined_state['pnt_rght_dwn'][0], defined_state['pnt_rght_dwn'][1]), (255, 0, 0), 2)
+            if self.state_definition is not None:
+                for defined_state in self.state_definition:
+                    cv2.rectangle(frame, (int(defined_state['pnt_lft_up'][0]), int(defined_state['pnt_lft_up'][1])), (
+                        int(defined_state['pnt_rght_dwn'][0]), int(defined_state['pnt_rght_dwn'][1])), (255, 0, 0), 2)
 
             cv2.namedWindow("Motion Detection")
             cv2.moveWindow("Motion Detection", 0, 0)
@@ -192,23 +276,20 @@ class MotionDetectorContour:
             cv2.moveWindow("Frame Delta", 0, 500)
             cv2.imshow("Frame Delta", frameDelta)
 
+            # needed waitKey to show img - param is time in ms
+            cv2.waitKey(1)
+
         self.last_frame = gray
         self.laste_state = state
 
-        # needed waitKey to show img - param is time in ms
-        cv2.waitKey(1)
-
     def on_message(self, client, userdata, msg):
-        if self.debug:
-            state_definition_json = self.json_state_definition_dummy
-            self.state_definition = json.loads(state_definition_json)
         if msg.topic == self.mqtt_topic_area:
-            if self.debug:
-                print('Area: ' + msg.payload)
-            self.state_definition = json.loads(msg.payload)
+            self.state_definition = json.loads(msg.payload.decode("utf-8"))
         elif msg.topic == self.mqtt_topic_stream:
             jpg_original = base64.b64decode(msg.payload)
             jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
+            # TODO intigrate humandetection
+            # if not self.findHuman(jpg_as_np):
             self.analyzeImage(jpg_as_np)
         else:
             if self.debug:
