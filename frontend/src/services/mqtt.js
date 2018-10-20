@@ -21,7 +21,7 @@ const startMqtt = (tpc, cb) => {
 
   client.on("message", (topic, message) => {
     if (topic === "state/at_machine") {
-      console.log(message.toString());
+      // console.log(message.toString());
     }
     cb(message.toString());
   });

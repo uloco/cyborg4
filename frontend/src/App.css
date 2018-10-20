@@ -24,6 +24,7 @@
 
 canvas {
   border: 1px solid grey;
+  position: fixed;
 }
 
 @keyframes App-logo-spin {

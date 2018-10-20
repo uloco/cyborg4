@@ -15,21 +15,21 @@ class App extends Component {
     };
   }
   componentDidMount() {
-    // startMqtt("cam/stream", url => {
-    //   this.setState({
-    //     ...this.state,
-    //     url: `data:image/jpg;base64,${url}`
-    //   });
-    // });
-    //   startMqtt("state/at_machine", machineState => {
-    //     let { state, timestamp } = JSON.parse(machineState).state_data;
-    //     timestamp = new Date(timestamp).toLocaleString("de-DE");
-    //     this.setState({
-    //       ...this.state,
-    //       machineState: state,
-    //       timestamp: timestamp
-    //     });
-    //   });
+    startMqtt("cam/stream", url => {
+      this.setState({
+        ...this.state,
+        url: `data:image/jpg;base64,${url}`
+      });
+    });
+    startMqtt("state/at_machine", machineState => {
+      let { state, timestamp } = JSON.parse(machineState).state_data;
+      timestamp = new Date(timestamp).toLocaleString("de-DE");
+      this.setState({
+        ...this.state,
+        machineState: state,
+        timestamp: timestamp
+      });
+    });
   }
 
   render() {
@@ -37,7 +37,7 @@ class App extends Component {
       <div className="App">
         <SelectionArea />
         <img src={this.state.url} />
-        Current State
+        <p>Current State</p>
         <p>{this.state.machineState}</p>
         <p>{this.state.timestamp}</p>
       </div>
