@@ -26,39 +26,46 @@ class Rectangle:
         self.bottom_right = bottom_right
 
     def intersects(self, other):
-        return not (self.top_left.x > other.bottom_right.x or self.top_left.x < other.top_left.x or self.bottom_right.y > other.bottom_right.y or self.top_left.y < other.top_left.y)
+        return not (self.top_left.x > other.bottom_right.x or
+                    self.bottom_right.x < other.top_left.x or
+                    self.top_left.y > other.bottom_right.y or
+                    self.bottom_right.y < other.top_left.y)
 
 
 class MotionDetectorContour:
 
+    mqtt_topic_stream = 'cam/stream'
+    mqtt_topic_state = 'state/at_machine'
+    mqtt_topic_area = 'state/definition'
     last_frame = None
     laste_state = None
     state_definition = None
 
-    json_state_definition_dummy = """ 
+    # for debugging
+    json_state_definition_dummy = """
         {
             "state_definition": {
                 "list": [
                     {
                         "name": "Productive_1",
                         "pnt_lft_up": [
-                            0.0,
-                            0.0
+                            0,
+                            0
                         ],
                         "pnt_rght_dwn": [
-                            0.2,
-                            0.2
+                            100,
+                            100
                         ]
                     },
                     {
                         "name": "Productive_2",
                         "pnt_lft_up": [
-                            0.8,
-                            0.8
+                            250,
+                            250
                         ],
                         "pnt_rght_dwn": [
-                            1.0,
-                            1.0
+                            350,
+                            350
                         ]
                     }
                 ]
@@ -85,9 +92,9 @@ class MotionDetectorContour:
         cv2.destroyAllWindows()
 
     def on_connect(self, client, userdata, flags, rc):
-        if(self.debug):
+        if self.debug:
             print("Connected with result code " + str(rc))
-        self.client.subscribe("cam/stream")
+        self.client.subscribe(self.mqtt_topic_stream)
 
     def parseToJson(self, state):
         data = {
@@ -113,7 +120,7 @@ class MotionDetectorContour:
             return
 
         # resize the frame, convert it to grayscale, and blur it
-        #frame = imutils.resize(frame, width=500)
+        # frame = imutils.resize(frame, width=500)
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
@@ -143,29 +150,36 @@ class MotionDetectorContour:
             # compute the bounding box for the contour, draw it on the frame,
             # and update the state
             (x, y, w, h) = cv2.boundingRect(c)
-            
+
             # check if rectangel is in defined area
             if self.state_definition is not None:
                 for defined_state in self.state_definition['state_definition']['list']:
                     state = "Productive"
-                    cv2.rectangle(frame, (x, y), (x + w, y + h),
-                                  (0, 255, 0), 2)
                     if self.rectangleInArea(x, y, x+w, y+h, defined_state['pnt_lft_up'], defined_state['pnt_rght_dwn']):
                         state = defined_state['name']
+                        cv2.rectangle(frame, (x, y), (x + w, y + h),
+                                      (255, 255, 0), 2)
                         break
-            
+                    else:
+                        cv2.rectangle(frame, (x, y), (x + w, y + h),
+                                      (0, 255, 0), 2)
 
         # publish state to mqtt broker
-        if(self.laste_state != None and self.laste_state != state):
+        if self.laste_state != None and self.laste_state != state:
             json_string = self.parseToJson(state)
-            self.client.publish("state/at_machine", json_string)
+            self.client.publish(self.mqtt_topic_state, json_string)
 
         # draw the state on the frame
         cv2.putText(frame, "Machine state: {}".format(state), (10, 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
         # show the frame and record if the user presses a key
-        if(self.debug):
+        if self.debug:
+            # check if there are defined areas
+            for defined_state in self.state_definition['state_definition']['list']:
+                cv2.rectangle(frame, (defined_state['pnt_lft_up'][0], defined_state['pnt_lft_up'][1]), (
+                    defined_state['pnt_rght_dwn'][0], defined_state['pnt_rght_dwn'][1]), (255, 0, 0), 2)
+
             cv2.namedWindow("Motion Detection")
             cv2.moveWindow("Motion Detection", 0, 0)
             cv2.imshow("Motion Detection", frame)
@@ -185,19 +199,19 @@ class MotionDetectorContour:
         cv2.waitKey(1)
 
     def on_message(self, client, userdata, msg):
-        # TODO remove - just for testing
-        state_definition_json = self.json_state_definition_dummy
-        self.state_definition = json.loads(state_definition_json)
+        if self.debug:
+            state_definition_json = self.json_state_definition_dummy
+            self.state_definition = json.loads(state_definition_json)
 
-        if(msg.topic == 'state/definition'):
+        if msg.topic == self.mqtt_topic_area:
             self.state_definition = json.loads(msg.payload)
-        elif(msg.topic == 'cam/stream'):
+        elif msg.topic == self.mqtt_topic_stream:
             jpg_original = base64.b64decode(msg.payload)
             jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
             self.analyzeImage(jpg_as_np)
 
 
-#mdc = MotionDetectorContour('user', 'password', '10.48.26.128', debug=True)
+# mdc = MotionDetectorContour('user', 'password', '10.48.26.128', debug=True)
 mdc = MotionDetectorContour('user', 'password', '10.48.153.110', debug=True)
 
 mdc.run()
