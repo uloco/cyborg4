@@ -24,6 +24,7 @@ export default class SelectionArea extends Component {
       url,
       { username, password }
     );
+    this.ctx = this.refs.canvas.getContext("2d");
   }
 
   mouseDown(e) {
@@ -41,7 +42,7 @@ export default class SelectionArea extends Component {
     this.point.yStop = e.clientY - top;
     this.drag = false;
 
-    if (this.points.length < 2) {
+    if (this.points.length < 3) {
       this.points = [...this.points, this.point];
     } else {
       let points = [...this.points];
@@ -68,6 +69,7 @@ export default class SelectionArea extends Component {
     }
     console.log("points", this.points);
     console.log("rectangles", this.rectangles);
+
     let payload = JSON.stringify([
       {
         name: "State " + Math.random() * 10,
@@ -94,18 +96,13 @@ export default class SelectionArea extends Component {
         e.clientY - top - this.point.yStart
       ];
 
-      this.ctx.strokeRect(
-        this.point.xStart,
-        this.point.yStart,
-        e.clientX - left - this.point.xStart,
-        e.clientY - top - this.point.yStart
-      );
-      // this.rectangles.forEach(args => {
-      //   if (args && Array.isArray(args)) {
-      //     console.log(args);
-      //     // this.ctx.strokeRect.apply(null, args);
-      //   }
-      // });
+      let [a, b, c, d] = this.rectangle;
+      this.ctx.strokeRect(a, b, c, d);
+
+      this.rectangles.forEach(rectangle => {
+        let [a, b, c, d] = rectangle;
+        this.ctx.strokeRect(a, b, c, d);
+      });
     }
   }
 

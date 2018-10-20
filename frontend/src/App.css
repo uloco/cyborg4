@@ -22,7 +22,7 @@
   color: #61dafb;
 }
 
-canvas {
+div canvas {
   border: 1px solid grey;
   position: fixed;
 }
