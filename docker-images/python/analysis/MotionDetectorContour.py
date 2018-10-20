@@ -9,6 +9,7 @@ import cv2
 import paho.mqtt.client as mqtt
 import base64
 import numpy as np
+import json
 
 
 class MotionDetectorContour:
@@ -38,6 +39,15 @@ class MotionDetectorContour:
         if(self.debug):
             print("Connected with result code " + str(rc))
         self.client.subscribe("cam/stream")
+
+    def parseToJson(self, state):
+        data = {
+            "state_data": {
+                "timestamp": int(time.time() * 1000),
+                "state": state
+            }
+        }
+        return json.dumps(data)
 
     def on_message(self, client, userdata, msg):
         jpg_original = base64.b64decode(msg.payload)
@@ -85,7 +95,8 @@ class MotionDetectorContour:
 
         # publish state to mqtt broker
         if(self.laste_state != None and self.laste_state != state):
-            self.client.publish("state/at_machine", state)
+            json_string = self.parseToJson(state)
+            self.client.publish("state/at_machine", json_string)
 
         # draw the state on the frame
         cv2.putText(frame, "Machine state: {}".format(state), (10, 20),
