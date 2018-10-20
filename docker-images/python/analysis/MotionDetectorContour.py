@@ -202,16 +202,24 @@ class MotionDetectorContour:
         if self.debug:
             state_definition_json = self.json_state_definition_dummy
             self.state_definition = json.loads(state_definition_json)
-
         if msg.topic == self.mqtt_topic_area:
+            if self.debug:
+                print('Area: ' + msg.payload)
             self.state_definition = json.loads(msg.payload)
         elif msg.topic == self.mqtt_topic_stream:
             jpg_original = base64.b64decode(msg.payload)
             jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
             self.analyzeImage(jpg_as_np)
+        else:
+            if self.debug:
+                print('ELSE: ' + msg.payload)
 
 
-# mdc = MotionDetectorContour('user', 'password', '10.48.26.128', debug=True)
-mdc = MotionDetectorContour('user', 'password', '10.48.153.110', debug=True)
+mqtt_user_name = 'user'
+mqtt_user_pw = 'password'
+mqtt_broker_ip = '10.48.153.110'
+
+mdc = MotionDetectorContour(
+    mqtt_user_name, mqtt_user_pw, mqtt_broker_ip, debug=True)
 
 mdc.run()
