@@ -86,6 +86,10 @@ class MotionDetectorContour:
 
         self.client.connect(self.broker_address, 1883, 60)
 
+        if self.debug:
+            self.state_definition = json.loads(
+                self.json_state_definition_dummy)
+
     def run(self):
         self.client.loop_forever()
         # cleanup open windows
@@ -95,6 +99,7 @@ class MotionDetectorContour:
         if self.debug:
             print("Connected with result code " + str(rc))
         self.client.subscribe(self.mqtt_topic_stream)
+        self.client.subscribe(self.mqtt_topic_area)
 
     def parseToJson(self, state):
         data = {
@@ -153,7 +158,7 @@ class MotionDetectorContour:
 
             # check if rectangel is in defined area
             if self.state_definition is not None:
-                for defined_state in self.state_definition['state_definition']['list']:
+                for defined_state in self.state_definition:
                     state = "Productive"
                     if self.rectangleInArea(x, y, x+w, y+h, defined_state['pnt_lft_up'], defined_state['pnt_rght_dwn']):
                         state = defined_state['name']
@@ -176,7 +181,7 @@ class MotionDetectorContour:
         # show the frame and record if the user presses a key
         if self.debug:
             # check if there are defined areas
-            for defined_state in self.state_definition['state_definition']['list']:
+            for defined_state in self.state_definition:
                 cv2.rectangle(frame, (defined_state['pnt_lft_up'][0], defined_state['pnt_lft_up'][1]), (
                     defined_state['pnt_rght_dwn'][0], defined_state['pnt_rght_dwn'][1]), (255, 0, 0), 2)
 
@@ -199,13 +204,8 @@ class MotionDetectorContour:
         cv2.waitKey(1)
 
     def on_message(self, client, userdata, msg):
-        if self.debug:
-            state_definition_json = self.json_state_definition_dummy
-            self.state_definition = json.loads(state_definition_json)
         if msg.topic == self.mqtt_topic_area:
-            if self.debug:
-                print('Area: ' + msg.payload)
-            self.state_definition = json.loads(msg.payload)
+            self.state_definition = json.loads(msg.payload.decode("utf-8"))
         elif msg.topic == self.mqtt_topic_stream:
             jpg_original = base64.b64decode(msg.payload)
             jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
