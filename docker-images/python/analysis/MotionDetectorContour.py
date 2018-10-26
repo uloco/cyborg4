@@ -111,7 +111,8 @@ class MotionDetectorContour:
         return rectangle1.intersects(rectangle2)
 
     def publishState(self, state):
-        self.client.publish(self.mqtt_topic_state, self.parseToJson(state))
+        if self.laste_state != state:
+            self.client.publish(self.mqtt_topic_state, self.parseToJson(state))
         self.laste_state = state
 
     def getTextColor(self, state):
@@ -158,7 +159,7 @@ class MotionDetectorContour:
         # loop over the contours
         for c in cnts:
             # if the contour is too small, ignore it
-            if cv2.contourArea(c) < 700:
+            if cv2.contourArea(c) < 600:
                 continue
 
             # compute the bounding box for the contour, draw it on the frame,
@@ -182,11 +183,11 @@ class MotionDetectorContour:
                 cv2.imshow('Motion Detection', frame)
 
                 cv2.namedWindow('Human Detection')
-                cv2.moveWindow('Human Detection', 1000, 0)
+                cv2.moveWindow('Human Detection', 0, 800)
                 cv2.imshow('Human Detection', res)
 
                 cv2.namedWindow('Blur Detection')
-                cv2.moveWindow('Blur Detection', 1000, 500)
+                cv2.moveWindow('Blur Detection', 500, 800)
                 cv2.imshow('Blur Detection', blur)
 
                 # needed waitKey to show img - param is time in ms
@@ -228,7 +229,7 @@ class MotionDetectorContour:
         # loop over the contours
         for c in cnts:
             # if the contour is too small, ignore it
-            if cv2.contourArea(c) < 500:
+            if cv2.contourArea(c) < 100:
                 continue
 
             # compute the bounding box for the contour, draw it on the frame,
@@ -236,7 +237,7 @@ class MotionDetectorContour:
             (x, y, w, h) = cv2.boundingRect(c)
 
             # check if rectangel is in defined area
-            if self.state_definition is not None:
+            if self.state_definition is not None and len(self.state_definition['points']) > 0:
                 for defined_state in self.state_definition['points']:
                     if self.rectangleInArea(x, y, x+w, y+h, defined_state['pnt_lft_up'], defined_state['pnt_rght_dwn']):
                         state = defined_state['name']
@@ -272,7 +273,7 @@ class MotionDetectorContour:
             cv2.imshow('Thresh', thresh)
 
             cv2.namedWindow('Frame Delta')
-            cv2.moveWindow('Frame Delta', 1000, 500)
+            cv2.moveWindow('Frame Delta', 1000, 350)
             cv2.imshow('Frame Delta', frameDelta)
 
             # needed waitKey to show img - param is time in ms
@@ -300,7 +301,7 @@ class MotionDetectorContour:
 
 mqtt_user_name = 'user'
 mqtt_user_pw = 'password'
-mqtt_broker_ip = '10.192.254.241'
+mqtt_broker_ip = '10.192.254.71'
 
 mdc = MotionDetectorContour(
     mqtt_user_name, mqtt_user_pw, mqtt_broker_ip, debug=True)
