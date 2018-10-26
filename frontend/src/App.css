@@ -1,5 +1,35 @@
 .App {
-  text-align: center;
+  margin: 20px;
+}
+
+.App > .stream-area {
+  margin-bottom: 10px; 
+}
+
+.App > .stream-area > img {
+  min-width: 500px;
+  min-height: 281px;
+  max-width: 500px;
+  max-height: 281px;
+  padding: 1px;
+}
+
+.App > .stream-area > .button-area {
+  margin-top: 10px;
+}
+
+.App > .table {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 300px;
+}
+
+.App > .table > .row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  line-height: 30px;
 }
 
 .App-logo {
@@ -22,9 +52,25 @@
   color: #61dafb;
 }
 
+.reset-button {
+  padding: 5px 20px;
+  background-color: #fff;
+  border: 1px solid #00a0ff;
+  font-size: 14px;
+  color: #00a0ff;
+  outline: 0;
+  transition: background-color 1s 0s 0s;
+  cursor: pointer;
+}
+
+.reset-button:hover {
+  background-color: #ccc;
+}
+
 div canvas {
   border: 1px solid grey;
-  position: fixed;
+  position: absolute;
+  cursor: crosshair;
 }
 
 @keyframes App-logo-spin {

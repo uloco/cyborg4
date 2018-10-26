@@ -1,8 +1,6 @@
 import { connect } from "mqtt";
 
-// const url = "mqtt://10.48.26.128:9001";
-// const url = "mqtt://10.48.149.123:9001";
-const url = "mqtt://10.48.153.110:9001";
+export const url = "mqtt://10.192.254.241:9001";
 const username = "admin";
 const password = "password";
 
