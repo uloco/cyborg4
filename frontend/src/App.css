@@ -2,11 +2,22 @@
   margin: 20px;
 }
 
-.App > .stream-area {
+.wrapper {
+  display: flex;
+  flex-direction: row;
+}
+
+.wrapper > .column {
+  margin: 0 15px;
+  display: inline-block;
+}
+
+.stream-area {
+  display: inline-block;
   margin-bottom: 10px; 
 }
 
-.App > .stream-area > img {
+.stream-area > img {
   min-width: 500px;
   min-height: 281px;
   max-width: 500px;
@@ -14,18 +25,18 @@
   padding: 1px;
 }
 
-.App > .stream-area > .button-area {
+.stream-area > .button-area {
   margin-top: 10px;
 }
 
-.App > .table {
+.table {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   width: 300px;
 }
 
-.App > .table > .row {
+.table > .row {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -59,18 +70,23 @@
   font-size: 14px;
   color: #00a0ff;
   outline: 0;
-  transition: background-color 1s 0s 0s;
+  transition: background-color 300ms, transform 300ms;
   cursor: pointer;
 }
 
 .reset-button:hover {
   background-color: #ccc;
+  transform: rotate(10deg);
 }
 
 div canvas {
   border: 1px solid grey;
   position: absolute;
   cursor: crosshair;
+}
+
+.column table tr {
+  padding: 5px 10px;
 }
 
 @keyframes App-logo-spin {

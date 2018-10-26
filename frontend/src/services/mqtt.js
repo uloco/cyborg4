@@ -1,6 +1,6 @@
 import { connect } from "mqtt";
 
-export const url = "mqtt://10.192.254.241:9001";
+export const url = "mqtt://10.192.254.71:9001";
 const username = "admin";
 const password = "password";
 
@@ -17,12 +17,8 @@ const startMqtt = (tpc, cb) => {
   });
 
   client.on("message", (topic, message) => {
-    if (topic === "state/at_machine") {
-      // console.log(message.toString());
-    }
-
-    // client.publish("state/definition", payload);
-    cb(message.toString());
+    cb(message);
+    client.unsubscribe(topic, () => client.subscribe(topic, error => { if (error) console.error(error) }));
   });
 };
 
